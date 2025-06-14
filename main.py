@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import sys
-sys.path.append("C:/Users/tasos/Desktop/TL_Project_Codes/TL_2025_scRNA-seq_pipeline_python-main")
+sys.path.append("C:/Users/user/tasos/Desktop/TL_2025_scRNA-seq_pipeline_python-main")
 
 from adata_preprocessor import adata_preprocessor, save_adata
 
@@ -60,9 +60,9 @@ elif section == "Preprocessing":
 
         min_genes = st.slider("min_genes", 0, 500, 100)
         min_cells = st.slider("min_cells", 1, 10, 3)
-        n_genes_min = st.slider("n_genes_min", 500, 3000, 1000)
-        n_genes_max = st.slider("n_genes_max", 5000, 20000, 10000)
-        n_counts_max = st.slider("n_counts_max", 10000, 100000, 30000)
+        n_genes_min = st.slider("n_genes_min", 0, 3000, 1000)
+        n_genes_max = st.slider("n_genes_max", 500, 20000, 10000)
+        n_counts_max = st.slider("n_counts_max", 1000, 100000, 30000)
         pc_mito = st.slider("% Μιτοχονδριακών", 0, 100, 20)
         pc_rib = st.slider("% Ριβοσωμικών", 0, 100, 25)
 
@@ -119,27 +119,33 @@ elif section == "Οπτικοποιήσεις":
         fig_umap = sc.pl.umap(adata, color=["n_genes", "n_counts"], return_fig=True, show=False)
         st.pyplot(fig_umap)
 
+        # Show first available genes
+        st.write("Διαθέσιμα γονίδια (πρώτα 20):", list(adata.var_names[:20]))
+
         st.subheader("Επιλογή Γονιδίων για Plot")
-        gene_list = st.text_input("Δώσε ονόματα γονιδίων χωρισμένα με κόμμα:", value="CD3D,MS4A1")
+        default_genes = ",".join(list(adata.var_names[:2]))  # first two genes
+        gene_list = st.text_input("Δώσε ονόματα γονιδίων χωρισμένα με κόμμα:", value=default_genes)
         genes = [g.strip() for g in gene_list.split(",")]
 
+        # Validate gene names
+        genes_not_found = [g for g in genes if g not in adata.var_names]
+
         if st.button("📈 Plot Gene Expression"):
-            try:
-                import matplotlib.pyplot as plt
-
-                sc.pl.violin(
-                    adata,
-                    keys=genes,
-                    groupby="leiden" if "leiden" in adata.obs else None,
-                    jitter=0.4,
-                    multi_panel=True,
-                    show=False  # ΜΗΝ εμφανίσεις με plt.show()
-                )
-
-                st.pyplot(plt.gcf())  # ⬅️ Πάρε το ενεργό figure και εμφάνισέ το στο Streamlit
-
-            except Exception as e:
-                st.error(f"Σφάλμα στην οπτικοποίηση: {e}")
+            if genes_not_found:
+                st.error(f"Τα παρακάτω γονίδια δεν βρέθηκαν: {', '.join(genes_not_found)}")
+            else:
+                try:
+                    sc.pl.violin(
+                        adata,
+                        keys=genes,
+                        groupby="leiden" if "leiden" in adata.obs else None,
+                        jitter=0.4,
+                        multi_panel=True,
+                        show=False  # ΜΗΝ εμφανίσεις με plt.show()
+                    )
+                    st.pyplot(plt.gcf())
+                except Exception as e:
+                    st.error(f"Σφάλμα στην οπτικοποίηση: {e}")
 
 # DEG Tab
 elif section == "Διαφορική Έκφραση (DEG)":
@@ -203,6 +209,7 @@ elif section == "Ομάδα":
             - Προβολή αποτελεσμάτων: πίνακες, volcano\n
             - Υλοποίηση επιλογής γονιδίων και violin plots\n
             - Χειρισμός session state για αποθήκευση αποτελεσμάτων\n
+            - Σχεδιασμός tab-based Streamlit UI (main.py)\n
       - Στέφανος Λάμπρου
        - **Συνεισφορά:**
             - Υλοποίηση adata_preprocessor.py\n
@@ -212,9 +219,9 @@ elif section == "Ομάδα":
             - Έλεγχος για άδεια δεδομένα / σφάλματα\n
       - Ορφέας Λάμπρου
        - **Συνεισφορά:**\n
-             - Σχεδιασμός tab-based Streamlit UI (main.py)\n
              - Οπτική διάταξη στοιχείων (sliders, inputs, buttons)\n
              - Δημιουργία Dockerfile, requirements.txt, τεκμηρίωση χρήσης\n
              - UML διαγράμματα (Use Case, Class)\n
              - Συγγραφή μεγάλου μέρους του τελικού LaTeX report\n
     """)
+
